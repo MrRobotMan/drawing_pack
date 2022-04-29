@@ -1,27 +1,29 @@
 import os
+import re
 import shutil
 import subprocess
 import threading
 from pathlib import Path
-from typing import Optional, Sequence, Tuple
+from typing import Iterable, Optional
 
-from PyPDF3.merger import PdfFileMerger
-from PyPDF3.pdf import PdfFileReader
+from PyPDF3 import PdfFileMerger, PdfFileReader
 
-import drawing_pack_model
+from src import ROOT
+from src import drawing_pack_tools as tools
 
-CWD = Path.cwd()
+# Matches sheets (See clean_sheet_name) to get the sheet and rev. 1-R0 -> (1)(-R0)
+SHEET_NAME = re.compile(r"-?(\d+)(.*)")
 
 
 def main(
     source: Path,
     destination: Optional[Path],
-    output: Optional[Path],
+    output: Optional[Path] = None,
     view: bool = False,
+    del_source: bool = False,
+    keep_individual: bool = False,
 ) -> Path:
     """Convert the <source> file to pdfs."""
-    print(source, destination, output, view)
-    del_source = False
     if destination is None:
         destination = source.parent
     elif destination != source.parent:
@@ -32,21 +34,24 @@ def main(
         output = source.with_suffix(".pdf")
     else:
         output = destination / output.with_suffix(".pdf")
-    sheets = get_layouts(source)
+    sheets, qty = get_layouts(source)
 
-    with open("pdfgen11x17layout.scr") as file:
+    with open(ROOT / "pdfgen11x17layout.scr") as file:
         base_scr = file.readlines()
 
-    temp_files, scrs = process_sheets(sheets, source, destination, base_scr)
-
+    scrs = process_sheets(sheets, source, destination, base_scr)
+    temp_files = [rename_file(source, scr, len(str(qty))) for scr in scrs]
     merge(temp_files, output)
 
     if del_source:
-        scrs.append(source)
+        remove_temp((source,))
+    if not keep_individual:
+        remove_temp(temp_files)
 
-    remove_temp(scrs)
+    remove_temp(list(scrs))
     if view:
         os.startfile(output)
+    tools.remove_plot_logs()
     return output
 
 
@@ -59,83 +64,57 @@ def get_base_name(source: Path, sheet_count: int) -> str:
 
 
 def process_sheets(
-    sheets: Sequence[str], source: Path, destination: Path, base_scr: list[str]
-) -> Tuple[list[Path], list[Path]]:
+    sheets: Iterable[str], source: Path, dest: Path, base_scr: list[str]
+) -> list[Path]:
     """Creates the PDFs for all sheets"""
-    base_name = get_base_name(source, len(sheets))
-    temp_files: list[Path] = []
     scrs: list[Path] = []
     threads: list[threading.Thread] = []
     for idx, sheet in enumerate(sheets):
-        temp_files.append(
-            destination / f"{base_name}{'-' if len(sheets) == 1 else ''}{sheet}.pdf"
-        )
-        scrs.append(destination / f"scr{idx}.scr")
+        scrs.append(dest / f"scr{idx}.scr")
         scr = base_scr[:]
         scr[2] = f'"{sheet}"\n'
-        with open(destination / f"scr{idx}.scr", "w+") as file:
+        with open(dest / f"scr{idx}.scr", "w+") as file:
             file.writelines(scr)
-        t = threading.Thread(target=make_pdf, args=(source, destination / f"scr{idx}"))
+        t = threading.Thread(target=tools.make_pdf, args=(source, dest / f"scr{idx}"))
         t.start()
         threads.append(t)
     for t in threads:
         t.join()
-    if source.stem != base_name:
-        for scr in scrs:
-            rename_file(source, base_name, scr)
 
-    return temp_files, scrs
+    return scrs
 
 
-def get_accore() -> str:
-    base = Path("C:/Program Files/Autodesk")
-    temp = ""
-    for folder in base.iterdir():
-        if "AutoCAD" in folder.name:
-            temp = folder.name
-    return str(base / temp / "accoreconsole.exe")
-
-
-def make_pdf(source: Path, scr: Path) -> None:
-    """Creates the layout pdf of based on the sheet listed in the SRC file."""
-    exe = get_accore()
-    source = source.with_suffix(".dwg")
-    subprocess.run(f'"{exe}" /i "{source}" /s "{scr}" /l "en-US"')
-
-
-def rename_file(source: Path, base_name: str, scr: Path) -> None:
+def rename_file(source: Path, scr: Path, fill: int) -> Path:
     """Renames the PDF to remove extra sheet references"""
     parent = source.parent
     orig_name = source.stem
     with scr.open() as f:
         sheet = f.readlines()[2].strip().replace('"', "")
     pdf = source.with_name(f"{orig_name}-{sheet}.pdf")
+    sheet = clean_sheet_name(sheet, fill)
     new_name = f"{pdf.stem[:27]}{sheet}.pdf"
-    pdf.replace(parent / new_name)
+    return pdf.replace(parent / new_name)
 
 
-def merge(files: list[Path], output: Path) -> None:
+def merge(files: Iterable[Path], output: Path) -> None:
     """Merges the individual PDFs into one."""
     merged = PdfFileMerger(strict=False)
-    for file in files:
+    for file in sorted(files):
         title = file.stem
         merged.append(PdfFileReader(str(file)), title)
     merged.write(str(output))
 
 
-def remove_temp(files: list[Path]) -> None:
+def remove_temp(files: Iterable[Path]) -> None:
     """Deletes all temp files"""
     for file in files:
         try:
             file.unlink()
         except FileNotFoundError:
             continue
-    plot = CWD / "plot.log"
-    if plot.exists():
-        plot.unlink()
 
 
-def get_layouts(drawing: Path) -> list[str]:
+def get_layouts(drawing: Path) -> tuple[Iterable[str], int]:
     """Opens the drawing and returns a list of all sheet names"""
     # odafc.win_exec_path = "./ODA/ODAFileConverter.exe"
     # doc = odafc.readfile(str(drawing))
@@ -159,9 +138,31 @@ def get_layouts(drawing: Path) -> list[str]:
 )
 """
         )
-    subprocess.run(f'"{get_accore()}" /i "{str(drawing)}" /s "{scr}" /l "en-US"')
+    subprocess.run(f'"{tools.get_accore()}" /i "{str(drawing)}" /s "{scr}" /l "en-US"')
     with open(layouts) as f:
-        sheets = [sheet.strip() for sheet in f.readlines() if sheet.strip() != "Model"]
+        sheets = (line.strip() for line in f.readlines() if line.strip() != "Model")
+        f.seek(0)
+        qty = sum(1 for line in f if line.strip() != "Model")
     layouts.unlink()
     scr.unlink()
-    return sheets
+    return sheets, qty
+
+
+def clean_sheet_name(sheet: str, fill: int) -> str:
+    """Cleans the sheet names so they are the same
+    Examples:
+        >>> clean_sheet_name("1-R0", 2)
+        '-01-R0'
+        >>> clean_sheet_name("-6-R0", 2)
+        '-06-R0'
+        >>> clean_sheet_name("-10-R0", 2)
+        '-10-R0'
+        >>> clean_sheet_name("10-R0", 2)
+        '-10-R0'
+    """
+    sheet_data = SHEET_NAME.search(sheet)
+    if sheet_data is None:
+        return ""
+    sheet_num = sheet_data.group(1)
+    sheet_rev = sheet_data.group(2)
+    return f"-{sheet_num:0>{fill}}{sheet_rev}"

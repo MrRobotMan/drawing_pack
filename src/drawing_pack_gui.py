@@ -20,8 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-import drawing_pack_layouts
-import drawing_pack_model
+from src import drawing_pack
 
 
 class emitter(QObject):
@@ -92,7 +91,7 @@ class MainApplication(QApplication):
         self.status = QTextEdit("Ready")
         self.status.append("Leave Rev blank to get the latest revision of each file")
         self.status.append(
-            "Leave output blank to get a file name of 5300XXXXXX-VWC-MS-DWG-XXXXX-RX-ALL"
+            "Leave output blank to get a file name of 5300XXXXXX-VWC-MS-DWG-XXXXX-01_ZZ-RX"
         )
         self.status.setReadOnly(True)
         self.status.setMinimumWidth(400)
@@ -111,7 +110,7 @@ class MainApplication(QApplication):
 
         self.grid.setColumnStretch(4, 1)
         self.window.setFixedHeight(250)
-        self.window.setMinimumWidth(800)
+        self.window.setMinimumWidth(830)
 
         self.initUI()
         self.window.show()
@@ -140,7 +139,9 @@ class MainApplication(QApplication):
         self.grid.addWidget(self.layouts, 4, 3, Qt.AlignRight)
 
         self.grid.addWidget(self.keep_sheets_label, 5, 0, 1, 2)
+        self.keep_sheets_label.hide()
         self.grid.addWidget(self.keep_sheets, 5, 3, Qt.AlignRight)
+        self.keep_sheets.hide()
 
         self.grid.addWidget(self.status, 0, 4, 6, 1)
         self.grid.addWidget(self.go, 6, 0)
@@ -166,14 +167,18 @@ class MainApplication(QApplication):
             latest = True
         match.replace("RR", "R")  # If rev was input as R0 instead of 0 only.
         dest = Path(self.dest.text()) if self.dest.text() else None
-        if self.layouts.isChecked():
-            result = drawing_pack_layouts.main(
-                Path(self.source.text()), dest, self.output.text()
-            )
-        else:
-            result = drawing_pack_model.main(
-                match, Path(self.source.text()), dest, self.output.text(), latest
-            )
+        output = self.output.text() if self.output.text() else None
+        result = drawing_pack.main(
+            match=match,
+            source=Path(self.source.text()),
+            dest=dest,
+            output=output,
+            paper=self.layouts.isChecked(),
+            latest=latest,
+            keep=self.keep_sheets.isChecked(),
+            del_source=False,
+            view=False,
+        )
         if isinstance(result, str):
             self.status.append(result)
         else:
@@ -204,14 +209,12 @@ class MainApplication(QApplication):
     def sheets(self):
         """Checks the box to keep individual sheets when selecting layout only"""
         if self.layouts.isChecked():
+            self.keep_sheets_label.show()
+            self.keep_sheets.show()
             self.keep_sheets.setChecked(True)
-            self.status.append(
-                "Default output name format: 5300XXXXXX-VWC-MS-DWG-YYYYY-01_ZZ-RX"
-            )
         else:
-            self.status.append(
-                "Default output name format: 5300XXXXXX-VWC-MS-DWG-XXXXX-RX-ALL"
-            )
+            self.keep_sheets_label.hide()
+            self.keep_sheets.hide()
 
 
 if __name__ == "__main__":

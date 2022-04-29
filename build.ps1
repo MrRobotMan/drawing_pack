@@ -1,13 +1,14 @@
-env\scripts\python.exe -m `
-    nuitka drawing_pack_gui.py `
+.venv\scripts\python.exe -m `
+    nuitka app.py `
     --python-flag=no_docstrings `
-    --include-data-file=.\veolia_logo_sm.png=.\ `
-    --include-data-file=.\veolia_logo.ico=.\ `
-    --include-data-file=.\pdfgen11x17model.scr=.\ `
+    --include-data-file=.\src\veolia_logo_sm.png=.\src\ `
+    --include-data-file=.\src\veolia_logo.ico=.\src\ `
+    --include-data-file=.\src\pdfgen11x17model.scr=.\src\ `
     --plugin-enable=pyside6 `
     --plugin-enable=pylint-warnings `
     --onefile `
     --windows-disable-console `
-    --windows-icon-from-ico=.\veolia_logo.ico `
+    --windows-icon-from-ico=.\src\veolia_logo.ico `
     --remove-output `
     --output-dir=dist
+Rename-Item .\dist\app.exe .\dist\drawing_pack.exe
