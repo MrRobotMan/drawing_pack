@@ -1,7 +1,8 @@
+import itertools
 import re
 import subprocess
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 
 from src import CWD
 
@@ -32,7 +33,7 @@ def process_match(match: str) -> str:
     return match
 
 
-def get_files(match: str, source: Path) -> Iterable[Path]:
+def get_files(match: str, source: Path) -> Optional[Iterable[Path]]:
     """
     Returns a list of matching files if any.
     >>> list(get_files('*00205*R0*.dwg', Path('Q:/cad_drawings/contract/5300221014 SPP3 Caustic Ph 2')))
@@ -42,8 +43,12 @@ WindowsPath('5300221014-VWC-MS-DWG-00205-05-R0.dwg'), WindowsPath('5300221014-VW
     >>> list(get_files('*245*R0*.dwg', Path('Q:/cad_drawings/contract/5300221014 SPP3 Caustic Ph 2')))
     []
     """
-    for file in source.glob(match):
-        yield Path(file.name)
+    files = source.glob(match)
+    try:
+        first = next(files)
+    except StopIteration:
+        return None
+    return itertools.chain([first], files)
 
 
 def get_file_count(match: str, source: Path) -> int:

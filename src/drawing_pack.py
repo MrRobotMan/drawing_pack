@@ -48,7 +48,7 @@ from src import drawing_pack_layouts, drawing_pack_model, drawing_pack_tools
     help="Flag to keep the individual sheets created along with the combined PDF (layout option only).",
 )
 @click.option(
-    " /-x",
+    "-x",
     "--del_source",
     is_flag=True,
     default=False,
@@ -81,7 +81,7 @@ def app(
     If <output> is specified this will be the name of the combined PDF otherwise the
     default naming will be used.
     """
-    main(
+    result = main(
         match=match,
         source=source,
         dest=dest,
@@ -92,6 +92,7 @@ def app(
         del_source=del_source,
         view=view,
     )
+    print(result)
 
 
 def main(
@@ -121,13 +122,13 @@ def main(
         source_dir = source
     else:
         if not source.exists():
-            return f"Could not find {source}"
-        matched_drawings = (source,)
+            return f"Could not find '{source}'"
+        matched_drawings = (source,)  # For the rest to work, this needs to be iterable.
         source_dir = source.parent
     if not dest:
         dest = source_dir
-    if not matched_drawings:
-        return f"No matching files for {match} in {source}"
+    if matched_drawings is None:
+        return f"No matching files for '{match}' in '{source}'"
     if latest:
         matched_drawings = drawing_pack_tools.get_latest(matched_drawings)
     total_files, matched_drawings = get_total(matched_drawings)
