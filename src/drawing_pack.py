@@ -98,14 +98,14 @@ def app(
 def main(
     match: str,
     source: Path,
-    dest: Optional[Path],
-    output: Optional[str],
-    paper: bool,
-    latest: bool,
-    keep: bool,
-    del_source: bool,
-    view: bool,
-) -> Path | str:
+    dest: Optional[Path] = None,
+    output: Optional[str] = None,
+    paper: bool = False,
+    latest: bool = True,
+    keep: bool = False,
+    del_source: bool = False,
+    view: bool = False,
+) -> str:
     """Creates PDF files of the specified drawings.
 
     Searches the <source> directory for any files matching the MATCH parameter.
@@ -119,6 +119,8 @@ def main(
     if source.is_dir():
         clean_match = drawing_pack_tools.process_match(match)
         matched_drawings = drawing_pack_tools.get_files(clean_match, source)
+        if matched_drawings is None:
+            return f"No matching files for '{match}' in '{source}'"
         source_dir = source
     else:
         if not source.exists():
@@ -127,8 +129,6 @@ def main(
         source_dir = source.parent
     if not dest:
         dest = source_dir
-    if matched_drawings is None:
-        return f"No matching files for '{match}' in '{source}'"
     if latest:
         matched_drawings = drawing_pack_tools.get_latest(matched_drawings)
     total_files, matched_drawings = get_total(matched_drawings)
@@ -149,18 +149,28 @@ def main(
         )
     else:
         out = Path(output) if output else None
-        return drawing_pack_model.main(
-            drawings=matched_drawings,
-            source=source,
-            sht_count=total_files,
-            dest=dest,
-            output=out,
-            view=view,
-            remove_dwg=del_source,
+        return str(
+            drawing_pack_model.main(
+                drawings=matched_drawings,
+                source=source,
+                sht_count=total_files,
+                dest=dest,
+                output=out,
+                view=view,
+                remove_dwg=del_source,
+            )
         )
 
 
 def get_total(drawings: Iterable[Path]) -> tuple[int, Iterable[Path]]:
+    """Finds then length of the iterable and returns that and the iterable.
+    Example:
+        >>> a = get_total((Path() for _ in range(2)))
+        >>> a[0]
+        2
+        >>> [str(item) for item in a[1]]
+        ['.', '.']
+    """
     drawings = list(drawings)
     return len(drawings), iter(drawings)
 
@@ -168,6 +178,13 @@ def get_total(drawings: Iterable[Path]) -> tuple[int, Iterable[Path]]:
 def get_output_files(
     total: int, destination: Path, name: Optional[str]
 ) -> Iterable[Optional[Path]]:
+    """Generate an output file name for each match.
+    Examples:
+        >>> list(get_output_files(3, Path(), None))
+        [None, None, None]
+        >>> [str(file) for file in get_output_files(3, Path(), "file")]
+        ['file.pdf', 'file(1).pdf', 'file(2).pdf']
+    """
     if name is None:
         for _ in range(total):
             yield None
