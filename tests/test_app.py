@@ -32,13 +32,13 @@ class TestMain(unittest.TestCase):
     def test_bad_paperspace(self) -> None:
         source = "FileDoesNotExist.txt"
         result = app.main("", Path(source))
-        self.assertEqual(result, f"Could not find '{source}'")
+        self.assertEqual(result, f"Error: Could not find '{source}'")
 
     def test_no_match(self) -> None:
         search = "*PID*00200*.dwg"
         source = Path()
         result = app.main(search, source)
-        self.assertEqual(result, f"No matching files for '*PID*00200*.dwg' in '.'")
+        self.assertEqual(result, f"Error: No matching files for '*PID*00200*.dwg' in '.'")
 
     @patch.object(
         layouts, "main", return_value=Path("5300221014-VWC-MS-DWG-00200-01-R0.pdf")

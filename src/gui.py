@@ -1,3 +1,5 @@
+# pyright: reportUnknownMemberType=false, reportGeneralTypeIssues=false
+
 import ctypes
 import os
 import sys
@@ -26,7 +28,7 @@ from src import app
 class emitter(QObject):
     textWritten = Signal(str)
 
-    def write(self, text: Any):
+    def write(self, text: Any) -> None:
         self.textWritten.emit(str(text))
 
 
@@ -115,7 +117,7 @@ class MainApplication(QApplication):
         self.initUI()
         self.window.show()
 
-    def initUI(self):
+    def initUI(self) -> None:
         central_widget = QWidget()
         central_widget.setLayout(self.grid)
         self.grid.addWidget(self.match_label, 0, 0)
@@ -150,9 +152,10 @@ class MainApplication(QApplication):
 
         self.window.setCentralWidget(central_widget)
 
-    def get_directory(self, entry: QLineEdit, default: str) -> None:
+    def get_directory(self, entry: QLineEdit, default: str) -> None:  # pragma: no cover
         source_picker = QFileDialog.getExistingDirectory(dir=default)
-        entry.setText(source_picker)
+        source_picker.set_focus()
+        entry.setText(self.source_picker)
         entry.editingFinished.emit()
 
     def process(self) -> None:
@@ -165,10 +168,10 @@ class MainApplication(QApplication):
             latest = False
         else:
             latest = True
-        match.replace("RR", "R")  # If rev was input as R0 instead of 0 only.
+        match = match.replace("RR", "R")  # If rev was input as R0 instead of 0 only.
         dest = Path(self.dest.text()) if self.dest.text() else None
         output = self.output.text() if self.output.text() else None
-        result = app.main(
+        result: str = app.main(
             match=match,
             source=Path(self.source.text()),
             dest=dest,
@@ -179,34 +182,34 @@ class MainApplication(QApplication):
             del_source=False,
             view=False,
         )
-        if isinstance(result, str):
+        if result.startswith("Error"):
             self.status.append(result)
         else:
-            self.latest_file = result
+            self.set_latest(result)
             self.open.show()
             self.match.setText("")
             self.rev.setText("")
             self.output.setText("")
             self.status.append(f"Success! {self.latest_file} created.")
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Restore stderr"""
         sys.stderr = sys.__stderr__
 
-    def console(self, text: Any):
+    def console(self, text: Any) -> None:
         """Append to status box"""
         self.status.append(text)
 
-    def path_change(self, textbox: QLineEdit, loc: str):
+    def path_change(self, textbox: QLineEdit, loc: str) -> None:
         """Print new path to output"""
         self.status.append(f"{loc} Folder: {textbox.text()}")
 
-    def open_file(self):
+    def open_file(self) -> None:
         """Opens the file and removes the button."""
         os.startfile(self.latest_file)
         self.open.hide()
 
-    def sheets(self):
+    def sheets(self) -> None:
         """Checks the box to keep individual sheets when selecting layout only"""
         if self.layouts.isChecked():
             self.keep_sheets_label.show()
@@ -215,6 +218,10 @@ class MainApplication(QApplication):
         else:
             self.keep_sheets_label.hide()
             self.keep_sheets.hide()
+
+    def set_latest(self, file: str) -> None:
+        files = file.split("\n")
+        self.latest_file = Path(files[0])
 
 
 if __name__ == "__main__":

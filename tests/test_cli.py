@@ -22,6 +22,6 @@ class TestCLI(unittest.TestCase):
             "-v",
         ]
         runner = CliRunner()
-        result = runner.invoke(cli.main, args=args)
+        res = runner.invoke(cli.main, args)  # pyright: ignore[reportUnknownMemberType]
         mock_main.assert_called_once()
-        assert result.output == "5300000000-VWC-MS-DWG-00200-01_10-R0.dwg\n"
+        assert res.output == "5300000000-VWC-MS-DWG-00200-01_10-R0.dwg\n"

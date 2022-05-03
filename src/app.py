@@ -29,11 +29,11 @@ def main(
         clean_match = tools.process_match(match)
         matched_drawings = tools.get_files(clean_match, source)
         if matched_drawings is None:
-            return f"No matching files for '{match}' in '{source}'"
+            return f"Error: No matching files for '{match}' in '{source}'"
         source_dir = source
     else:
         if not source.exists():
-            return f"Could not find '{source}'"
+            return f"Error: Could not find '{source}'"
         matched_drawings = (source,)  # For the rest to work, this needs to be iterable.
         source_dir = source.parent
     if not dest:
