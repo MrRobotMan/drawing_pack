@@ -1,7 +1,7 @@
 import sys
 
-from src import drawing_pack
-from src.drawing_pack_gui import MainApplication
+from src import cli
+from src.gui import MainApplication
 
 
 def main() -> None:
@@ -9,7 +9,7 @@ def main() -> None:
         app = MainApplication()
         sys.exit(app.exec())
     else:
-        drawing_pack.app()
+        cli.main()
 
 
 if __name__ == "__main__":

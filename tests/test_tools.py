@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Generator
 from unittest.mock import Mock, patch
 
-from src import drawing_pack_tools as tools
+from src import tools
 
 from tests import PROJECT
 

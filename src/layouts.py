@@ -9,7 +9,7 @@ from typing import Iterable, Optional
 from PyPDF3 import PdfFileMerger, PdfFileReader
 
 from src import ROOT
-from src import drawing_pack_tools as tools
+from src import tools as tools
 
 # Matches sheets (See clean_sheet_name) to get the sheet and rev. 1-R0 -> (1)(-R0)
 SHEET_NAME = re.compile(r"-?(\d+)(.*)")

@@ -1,4 +1,3 @@
-Remove-Item .\dist\drawing_pack.exe
 .venv\scripts\python.exe -m `
     nuitka app.py `
     --python-flag=no_docstrings `
@@ -12,4 +11,3 @@ Remove-Item .\dist\drawing_pack.exe
     --windows-icon-from-ico=.\src\veolia_logo.ico `
     --remove-output `
     --output-dir=dist
-Rename-Item  .\dist\app.exe drawing_pack.exe

@@ -7,7 +7,7 @@ from typing import Iterable, List, Optional, Union
 from PyPDF3 import PdfFileMerger, PdfFileReader
 
 from src import ROOT
-from src import drawing_pack_tools as tools
+from src import tools as tools
 
 
 def main(

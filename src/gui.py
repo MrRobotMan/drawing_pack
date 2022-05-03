@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src import drawing_pack
+from src import app
 
 
 class emitter(QObject):
@@ -168,7 +168,7 @@ class MainApplication(QApplication):
         match.replace("RR", "R")  # If rev was input as R0 instead of 0 only.
         dest = Path(self.dest.text()) if self.dest.text() else None
         output = self.output.text() if self.output.text() else None
-        result = drawing_pack.main(
+        result = app.main(
             match=match,
             source=Path(self.source.text()),
             dest=dest,
