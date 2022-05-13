@@ -35,12 +35,12 @@ def main(
     else:
         output = destination / output.with_suffix(".pdf")
     sheets, qty = get_layouts(source)
+    fill = max((2, len(str(qty))))
 
-    with open(ROOT / "pdfgen11x17layout.scr") as file:
-        base_scr = file.readlines()
+    base_scr = (ROOT / "pdfgen11x17layout.scr").read_text().splitlines()
 
     scrs = process_sheets(sheets, source, destination, base_scr)
-    temp_files = [rename_file(source, scr, len(str(qty))) for scr in scrs]
+    temp_files = [rename_file(source, scr, fill) for scr in scrs]
     merge(temp_files, output)
 
     if del_source:
@@ -58,7 +58,7 @@ def main(
 def get_base_name(source: Path, sheet_count: int) -> str:
     """Returns the name of the source file removing multi sheet reference as needed"""
     if sheet_count == 1:
-        return source.name
+        return source.stem
     # Default format 5300XXXXXX-VWC-MS-DWG-YYYYY
     return source.name[:27]
 
@@ -72,9 +72,8 @@ def process_sheets(
     for idx, sheet in enumerate(sheets):
         scrs.append(dest / f"scr{idx}.scr")
         scr = base_scr[:]
-        scr[2] = f'"{sheet}"\n'
-        with open(dest / f"scr{idx}.scr", "w+") as file:
-            file.writelines(scr)
+        scr[2] = f'"{sheet}"'
+        (dest / f"scr{idx}.scr").write_text("\n".join(scr))
         t = threading.Thread(target=tools.make_pdf, args=(source, dest / f"scr{idx}"))
         t.start()
         threads.append(t)
@@ -84,7 +83,7 @@ def process_sheets(
     return scrs
 
 
-def rename_file(source: Path, scr: Path, fill: int) -> Path:
+def rename_file(source: Path, scr: Path, fill: int = 2) -> Path:
     """Renames the PDF to remove extra sheet references"""
     parent = source.parent
     orig_name = source.stem
@@ -96,7 +95,7 @@ def rename_file(source: Path, scr: Path, fill: int) -> Path:
     return pdf.replace(parent / new_name)
 
 
-def merge(files: Iterable[Path], output: Path) -> None:
+def merge(files: Iterable[Path], output: Path) -> None:  # pragma: no cover
     """Merges the individual PDFs into one."""
     merged = PdfFileMerger(strict=False)
     for file in sorted(files):
@@ -105,7 +104,7 @@ def merge(files: Iterable[Path], output: Path) -> None:
     merged.write(str(output))
 
 
-def remove_temp(files: Iterable[Path]) -> None:
+def remove_temp(files: Iterable[Path]) -> None:  # pragma: no cover
     """Deletes all temp files"""
     for file in files:
         try:
@@ -122,9 +121,8 @@ def get_layouts(drawing: Path) -> tuple[Iterable[str], int]:
     base = Path(__file__).parent
     layouts = base / "layouts.txt"
     scr = base / "sheetlist.scr"
-    with open(scr, "w+") as f:
-        f.write(
-            f"""
+    scr.write_text(
+        f"""
 (if (setq des (open "{layouts.as_posix()}" "w"))
   (progn
     (setq items (dictsearch (namedobjdict) "ACAD_LAYOUT"))
@@ -137,7 +135,7 @@ def get_layouts(drawing: Path) -> tuple[Iterable[str], int]:
   )
 )
 """
-        )
+    )
     subprocess.run(f'"{tools.get_accore()}" /i "{str(drawing)}" /s "{scr}" /l "en-US"')
     with open(layouts) as f:
         sheets = (line.strip() for line in f.readlines() if line.strip() != "Model")
@@ -148,7 +146,7 @@ def get_layouts(drawing: Path) -> tuple[Iterable[str], int]:
     return sheets, qty
 
 
-def clean_sheet_name(sheet: str, fill: int) -> str:
+def clean_sheet_name(sheet: str, fill: int = 2) -> str:
     """Cleans the sheet names so they are the same
     Examples:
         >>> clean_sheet_name("1-R0", 2)

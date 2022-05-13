@@ -56,7 +56,9 @@ def create_temp_files(files: List[Path], source: Path, dest: Path) -> None:
         shutil.copy(source / file.with_suffix(".dwg").name, dest)
 
 
-def merge_pdf(files: List[Path], source: Path, output: Path) -> None:
+def merge_pdf(
+    files: List[Path], source: Path, output: Path
+) -> None:  # pragma: no cover
     merged = PdfFileMerger(strict=False)
     for pdf in files:
         title = str(pdf)
@@ -74,7 +76,7 @@ def remove_temp(files: List[Path], source: Path, remove_dwg: bool) -> None:
         try:
             pdf.unlink()
         except FileNotFoundError:
-            pass
+            print(f"Could not find {pdf} to delete.")
         if remove_dwg:
             dwg = source / file.with_suffix(".dwg")
             dwg.unlink()
