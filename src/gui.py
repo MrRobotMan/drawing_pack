@@ -154,8 +154,7 @@ class MainApplication(QApplication):
 
     def get_directory(self, entry: QLineEdit, default: str) -> None:  # pragma: no cover
         source_picker = QFileDialog.getExistingDirectory(dir=default)
-        source_picker.set_focus()
-        entry.setText(self.source_picker)
+        entry.setText(source_picker)
         entry.editingFinished.emit()
 
     def process(self) -> None:
