@@ -73,7 +73,7 @@ def process_sheets(
         scrs.append(dest / f"scr{idx}.scr")
         scr = base_scr[:]
         scr[2] = f'"{sheet}"'
-        (dest / f"scr{idx}.scr").write_text("\n".join(scr))
+        (dest / f"scr{idx}.scr").write_text("\n".join(scr) + "\n")
         t = threading.Thread(target=tools.make_pdf, args=(source, dest / f"scr{idx}"))
         t.start()
         threads.append(t)
@@ -134,6 +134,7 @@ def get_layouts(drawing: Path) -> tuple[Iterable[str], int]:
     (close des)
   )
 )
+
 """
     )
     subprocess.run(f'"{tools.get_accore()}" /i "{str(drawing)}" /s "{scr}" /l "en-US"')
