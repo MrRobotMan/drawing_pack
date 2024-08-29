@@ -7,8 +7,8 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from PySide6.QtTest import QTest
-from src import app, gui
 
+from src import app, gui
 from tests import PROJECT
 
 

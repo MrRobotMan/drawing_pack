@@ -19,7 +19,7 @@ def main(
     view: bool = False,
     remove_dwg: bool = False,
 ) -> Union[Path, str]:
-    drawings = list(drawings)
+    drawings = [Path(drawing.name) for drawing in drawings]
     if dest:
         create_temp_files(drawings, source, dest)
         remove_dwg = True
@@ -78,5 +78,5 @@ def remove_temp(files: List[Path], source: Path, remove_dwg: bool) -> None:
         except FileNotFoundError:
             print(f"Could not find {pdf} to delete.")
         if remove_dwg:
-            dwg = source / file.with_suffix(".dwg")
+            dwg = source / file.name
             dwg.unlink()
